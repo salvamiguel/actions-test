@@ -1,0 +1,21 @@
+name: 'Version Checker'
+description: 'Parses a semver string and outputs its components'
+
+inputs:
+  version:
+    description: 'Semver string to parse (e.g. 2.3.1 or 1.0.0-beta.1)'
+    required: true
+
+outputs:
+  major:
+    description: 'Major version number'
+  minor:
+    description: 'Minor version number'
+  patch:
+    description: 'Patch version number'
+  is-prerelease:
+    description: '"true" if a prerelease identifier is present, "false" otherwise'
+
+runs:
+  using: node20
+  main: index.js

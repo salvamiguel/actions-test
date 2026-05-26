@@ -1,0 +1,11 @@
+name: 'Env Exporter'
+description: 'Exports a set of key=value pairs into GITHUB_ENV for subsequent steps'
+
+inputs:
+  vars:
+    description: 'YAML map of environment variable names to values'
+    required: true
+
+runs:
+  using: node20
+  main: index.js

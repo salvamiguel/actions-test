@@ -1,0 +1,19 @@
+name: 'Hello Action'
+description: 'A simple fixture action for integration testing'
+
+inputs:
+  name:
+    description: 'Who to greet'
+    required: true
+  shout:
+    description: 'Whether to shout the greeting'
+    required: false
+    default: 'false'
+
+outputs:
+  greeting:
+    description: 'The greeting message'
+
+runs:
+  using: node20
+  main: index.js

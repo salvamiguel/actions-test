@@ -1,0 +1,29 @@
+name: 'Action Tester'
+description: 'Test GitHub Actions declaratively with YAML assertions'
+author: 'Salva Manzanera (@salvamiguel)'
+
+inputs:
+  action:
+    description: 'Action ref — marketplace (owner/repo@ref) or local (./path)'
+    required: true
+  inputs:
+    description: 'YAML block of inputs to pass to the target action'
+    required: false
+  env:
+    description: 'YAML block of extra env vars to inject into the action'
+    required: false
+  assertions:
+    description: 'YAML block of assertions to evaluate against action output'
+    required: false
+  expect_failure:
+    description: 'Set to true if the action is expected to exit non-zero'
+    required: false
+    default: 'false'
+
+branding:
+  icon: 'check'
+  color: 'blue'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'

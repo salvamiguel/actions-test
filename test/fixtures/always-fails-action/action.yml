@@ -1,0 +1,16 @@
+name: 'Always Fails'
+description: 'An action that always exits with a failure — useful for testing expect_failure assertions'
+
+inputs:
+  message:
+    description: 'The failure message to emit'
+    required: false
+    default: 'This action always fails'
+  exit-code:
+    description: 'The process exit code to use (default: 1)'
+    required: false
+    default: '1'
+
+runs:
+  using: node20
+  main: index.js

@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+
+      - name: Update floating major tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '')
+            const match = tag.match(/^v(\d+)/)
+            if (!match) throw new Error(`Unexpected tag format: ${tag}`)
+            const floatingTag = `v${match[1]}`
+
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `tags/${floatingTag}`,
+              })
+            } catch {
+              // tag doesn't exist yet on first release — that's fine
+            }
+
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${floatingTag}`,
+              sha: context.sha,
+            })
+
+            core.info(`Updated ${floatingTag} -> ${context.sha.slice(0, 7)}`)
