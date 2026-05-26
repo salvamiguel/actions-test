@@ -1,0 +1,190 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  build-check:
+    name: Build and verify dist is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Verify dist is up to date
+        run: git diff --exit-code dist/
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci && npm run build
+      - name: Test hello-action fixture (Node runner)
+        uses: ./
+        with:
+          action: ./test/fixtures/hello-action
+          inputs: |
+            name: World
+          assertions: |
+            exit_code: 0
+            outputs.greeting: Hello, World!
+            stdout.contains: "Hello, World!"
+      - name: Test hello-action with shout input
+        uses: ./
+        with:
+          action: ./test/fixtures/hello-action
+          inputs: |
+            name: World
+            shout: 'true'
+          assertions: |
+            exit_code: 0
+            outputs.greeting: HELLO, WORLD!
+            stdout.contains: "HELLO, WORLD!"
+
+      - name: Test actions/checkout@v6 (marketplace)
+        uses: ./
+        with:
+          action: actions/checkout@v6
+          inputs: |
+            repository: ${{ github.repository }}
+            token: ${{ secrets.GITHUB_TOKEN }}
+          assertions: |
+            exit_code: 0
+            files.exist:
+              - .git/HEAD
+              - .git/config
+
+      - name: Test actions/setup-node@v6 (marketplace)
+        uses: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          action: actions/setup-node@v6
+          inputs: |
+            node-version: '24'
+          assertions: |
+            exit_code: 0
+            stdout.contains: "node"
+
+      # --- version-checker-action ---
+      - name: Test version-checker — stable semver
+        uses: ./
+        with:
+          action: ./test/fixtures/version-checker-action
+          inputs: |
+            version: 2.3.1
+          assertions: |
+            exit_code: 0
+            outputs.major: '2'
+            outputs.minor: '3'
+            outputs.patch: '1'
+            outputs.is-prerelease: 'false'
+            stdout.contains: "Parsed 2.3.1"
+            summary.contains: "Version"
+
+      - name: Test version-checker — prerelease semver
+        uses: ./
+        with:
+          action: ./test/fixtures/version-checker-action
+          inputs: |
+            version: 1.0.0-beta.1
+          assertions: |
+            exit_code: 0
+            outputs.major: '1'
+            outputs.minor: '0'
+            outputs.patch: '0'
+            outputs.is-prerelease: 'true'
+            stdout.contains: "prerelease: beta.1"
+
+      - name: Test version-checker — invalid input triggers failure
+        uses: ./
+        with:
+          action: ./test/fixtures/version-checker-action
+          inputs: |
+            version: not-a-version
+          expect_failure: true
+          assertions: |
+            stdout.contains: "Invalid semver"
+
+      # --- env-exporter-action ---
+      - name: Test env-exporter — exports multiple vars into GITHUB_ENV
+        uses: ./
+        with:
+          action: ./test/fixtures/env-exporter-action
+          inputs: |
+            vars: |
+              NODE_ENV: test
+              APP_VERSION: 1.2.3
+              FEATURE_FLAG: enabled
+          assertions: |
+            exit_code: 0
+            env.NODE_ENV: test
+            env.APP_VERSION: 1.2.3
+            env.FEATURE_FLAG: enabled
+            stdout.contains: "Exported NODE_ENV=test"
+            summary.contains: "Exported Variables"
+
+      # --- always-fails-action ---
+      - name: Test always-fails-action — expect_failure with default message
+        uses: ./
+        with:
+          action: ./test/fixtures/always-fails-action
+          expect_failure: true
+          assertions: |
+            stdout.contains: "This action always fails"
+
+      - name: Test always-fails-action — custom failure message
+        uses: ./
+        with:
+          action: ./test/fixtures/always-fails-action
+          inputs: |
+            message: 'Intentional test failure'
+          expect_failure: true
+          assertions: |
+            stdout.contains: "Intentional test failure"
+
+      # --- composite-steps-action ---
+      - name: Test composite-steps-action — all three steps run
+        uses: ./
+        with:
+          action: ./test/fixtures/composite-steps-action
+          assertions: |
+            exit_code: 0
+            stdout.contains: "Step 1 running"
+            outputs.result: composite-success
+            summary.contains: "Composite Complete"
+
+      - name: Test composite-steps-action — custom prefix propagates
+        uses: ./
+        with:
+          action: ./test/fixtures/composite-steps-action
+          inputs: |
+            prefix: release
+          assertions: |
+            exit_code: 0
+            stdout.contains: "prefix=release"
+            outputs.result: release-success

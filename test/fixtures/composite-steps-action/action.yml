@@ -1,0 +1,23 @@
+name: 'Composite Steps'
+description: 'A composite action that runs shell steps and sets outputs via GITHUB_OUTPUT'
+
+inputs:
+  prefix:
+    description: 'A string to prepend to the result value'
+    required: false
+    default: 'composite'
+
+runs:
+  using: composite
+  steps:
+    - name: Step 1 — announce
+      run: echo "Step 1 running with prefix=$INPUT_PREFIX"
+      shell: bash
+
+    - name: Step 2 — build result
+      run: echo "result=${INPUT_PREFIX}-success" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Step 3 — write summary
+      run: echo "## Composite Complete" >> $GITHUB_STEP_SUMMARY
+      shell: bash
