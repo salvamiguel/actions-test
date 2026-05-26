@@ -2,7 +2,7 @@ const { formatReport } = require('../src/report')
 
 const baseParams = {
   actionRef: 'actions/checkout@v4',
-  runnerType: 'node20',
+  runnerType: 'node24',
   captureResult: { exitCode: 0, outputs: {}, stdout: '', stderr: '', summary: '', envVars: {} },
   assertionResults: {
     passed: [{ key: 'exit_code', expected: '0', actual: '0', message: '' }],
@@ -17,7 +17,7 @@ describe('formatReport', () => {
   })
 
   it('includes the runner type', () => {
-    expect(formatReport(baseParams)).toContain('node20')
+    expect(formatReport(baseParams)).toContain('node24')
   })
 
   it('shows PASS for passing assertions', () => {

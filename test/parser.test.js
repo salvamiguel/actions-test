@@ -22,13 +22,13 @@ describe('parseAction — runner detection', () => {
     writeActionYml(`
 name: test
 runs:
-  using: node20
+  using: node24
   main: index.js
 `)
     const result = await parseAction(tmpDir, {})
     expect(result.type).toBe('node')
     expect(result.main).toBe(path.join(tmpDir, 'index.js'))
-    expect(result.using).toBe('node20')
+    expect(result.using).toBe('node24')
   })
 
   it('detects node24 runner type', async () => {
@@ -90,7 +90,7 @@ inputs:
   optional-input:
     default: hello
 runs:
-  using: node20
+  using: node24
   main: index.js
 `)
     const result = await parseAction(tmpDir, { 'required-input': 'value' })
@@ -109,7 +109,7 @@ inputs:
   second:
     required: true
 runs:
-  using: node20
+  using: node24
   main: index.js
 `)
     await expect(parseAction(tmpDir, {})).rejects.toThrow('Missing required inputs: first, second')
@@ -119,7 +119,7 @@ runs:
     writeActionYml(`
 name: test
 runs:
-  using: node20
+  using: node24
   main: index.js
 `)
     const result = await parseAction(tmpDir, {})
@@ -135,12 +135,43 @@ inputs:
   token:
     default: hello
 runs:
-  using: node20
+  using: node24
   main: index.js
 `)
     const result = await parseAction(tmpDir, {})
     expect('filter' in result.resolvedInputs).toBe(false)
     expect(result.resolvedInputs.token).toBe('hello')
+  })
+
+  it('skips expression defaults so they are never passed as literals (e.g. token: ${{ github.token }})', async () => {
+    writeActionYml(`
+name: test
+inputs:
+  token:
+    default: \${{ github.token }}
+  persist-credentials:
+    default: 'true'
+runs:
+  using: node24
+  main: index.js
+`)
+    const result = await parseAction(tmpDir, {})
+    expect('token' in result.resolvedInputs).toBe(false)
+    expect(result.resolvedInputs['persist-credentials']).toBe('true')
+  })
+
+  it('uses caller-provided value even when default is an expression', async () => {
+    writeActionYml(`
+name: test
+inputs:
+  token:
+    default: \${{ github.token }}
+runs:
+  using: node24
+  main: index.js
+`)
+    const result = await parseAction(tmpDir, { token: 'ghs_explicit' })
+    expect(result.resolvedInputs.token).toBe('ghs_explicit')
   })
 })
 
@@ -149,7 +180,7 @@ describe('parseAction — file lookup', () => {
     fs.writeFileSync(path.join(tmpDir, 'action.yaml'), `
 name: test
 runs:
-  using: node20
+  using: node24
   main: index.js
 `.trim())
     const result = await parseAction(tmpDir, {})

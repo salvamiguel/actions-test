@@ -37,7 +37,7 @@ function resolveInputs(inputsDef, providedInputs) {
   for (const [name, def] of Object.entries(inputsDef)) {
     if (providedInputs[name] !== undefined) {
       resolved[name] = String(providedInputs[name])
-    } else if (def.default !== undefined && def.default !== null) {
+    } else if (def.default !== undefined && def.default !== null && !isExpression(def.default)) {
       resolved[name] = String(def.default)
     } else if (def.required === true) {
       missing.push(name)
@@ -46,6 +46,10 @@ function resolveInputs(inputsDef, providedInputs) {
 
   if (missing.length > 0) throw new Error(`Missing required inputs: ${missing.join(', ')}`)
   return resolved
+}
+
+function isExpression(value) {
+  return typeof value === 'string' && /^\$\{\{/.test(value.trim())
 }
 
 module.exports = { parseAction }

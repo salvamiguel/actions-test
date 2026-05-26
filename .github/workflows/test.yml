@@ -67,12 +67,11 @@ jobs:
 
       - name: Test actions/checkout@v4 (marketplace)
         uses: ./
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           action: actions/checkout@v4
           inputs: |
             repository: ${{ github.repository }}
+            token: ${{ secrets.GITHUB_TOKEN }}
           assertions: |
             exit_code: 0
             files.exist:

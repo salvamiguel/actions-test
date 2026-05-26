@@ -17,5 +17,5 @@ outputs:
     description: '"true" if a prerelease identifier is present, "false" otherwise'
 
 runs:
-  using: node20
+  using: node24
   main: index.js
