@@ -37,7 +37,7 @@ function resolveInputs(inputsDef, providedInputs) {
   for (const [name, def] of Object.entries(inputsDef)) {
     if (providedInputs[name] !== undefined) {
       resolved[name] = String(providedInputs[name])
-    } else if (def.default !== undefined) {
+    } else if (def.default !== undefined && def.default !== null) {
       resolved[name] = String(def.default)
     } else if (def.required === true) {
       missing.push(name)

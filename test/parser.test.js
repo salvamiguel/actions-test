@@ -125,6 +125,23 @@ runs:
     const result = await parseAction(tmpDir, {})
     expect(result.resolvedInputs).toEqual({})
   })
+
+  it('skips null defaults so the env var is never set (e.g. actions/checkout filter input)', async () => {
+    writeActionYml(`
+name: test
+inputs:
+  filter:
+    default: null
+  token:
+    default: hello
+runs:
+  using: node20
+  main: index.js
+`)
+    const result = await parseAction(tmpDir, {})
+    expect('filter' in result.resolvedInputs).toBe(false)
+    expect(result.resolvedInputs.token).toBe('hello')
+  })
 })
 
 describe('parseAction — file lookup', () => {

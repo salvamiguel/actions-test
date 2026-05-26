@@ -1,10 +1,4 @@
-Run ./
-Error: Invalid repository '${{ github.repository }}'. Expected format {owner}/{repo}.
-Error: duplicated mapping key (3:1)
-
- 1 | exit_code: 0
- 2 | files.exist: .git/HEAD
- 3 | files.exist: .git/configname: PR Lint
+name: PR Lint
 
 on:
   pull_request:
