@@ -3,12 +3,7 @@ const path = require('path')
 const { spawn } = require('child_process')
 
 async function runNodeAction({ actionDir, main, resolvedInputs, userEnv, captureContext: _captureContext }) {
-  const sharedNm = findAncestorNodeModules(actionDir)
-  const existingNodePath = process.env.NODE_PATH || ''
-  const nodePath = sharedNm
-    ? (existingNodePath ? `${sharedNm}${path.delimiter}${existingNodePath}` : sharedNm)
-    : existingNodePath
-
+  const nodePath = buildNodePath(actionDir)
   const env = {
     ...process.env,
     ...(nodePath ? { NODE_PATH: nodePath } : {}),
@@ -18,14 +13,25 @@ async function runNodeAction({ actionDir, main, resolvedInputs, userEnv, capture
   return spawnCapture('node', [main], { cwd: actionDir, env })
 }
 
-function findAncestorNodeModules(actionDir) {
+function buildNodePath(actionDir) {
+  const parts = []
+
+  // In GitHub Actions, GITHUB_WORKSPACE/node_modules holds all installed packages
+  const ws = process.env.GITHUB_WORKSPACE
+  if (ws) parts.push(path.join(ws, 'node_modules'))
+
+  // Local dev fallback: traverse up from the action directory
   let dir = path.dirname(actionDir)
   while (dir !== path.dirname(dir)) {
     const nm = path.join(dir, 'node_modules')
-    if (fs.existsSync(nm)) return nm
+    if (fs.existsSync(nm) && !parts.includes(nm)) { parts.push(nm); break }
     dir = path.dirname(dir)
   }
-  return null
+
+  const existing = process.env.NODE_PATH
+  if (existing) parts.push(existing)
+
+  return parts.join(path.delimiter)
 }
 
 function buildInputEnv(resolvedInputs) {
