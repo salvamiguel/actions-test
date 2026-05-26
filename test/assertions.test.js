@@ -106,3 +106,32 @@ describe('evaluateAssertions — accumulation', () => {
     expect(passed[0]).toMatchObject({ key: 'exit_code', expected: '0' })
   })
 })
+
+describe('evaluateAssertions — array values', () => {
+  it('accepts a list for files.exist and checks each path', () => {
+    const { failed, passed } = evaluateAssertions(
+      `files.exist:\n  - "${__filename}"\n  - "${__filename}"`,
+      baseResult
+    )
+    expect(failed).toHaveLength(0)
+    expect(passed).toHaveLength(2)
+  })
+
+  it('reports each failing item in a list independently', () => {
+    const { failed } = evaluateAssertions(
+      `files.exist:\n  - "${__filename}"\n  - /nonexistent/a.txt\n  - /nonexistent/b.txt`,
+      baseResult
+    )
+    expect(failed).toHaveLength(2)
+    expect(failed[0].expected).toBe('/nonexistent/a.txt')
+    expect(failed[1].expected).toBe('/nonexistent/b.txt')
+  })
+
+  it('accepts a list for stdout.contains', () => {
+    const { failed } = evaluateAssertions(
+      'stdout.contains:\n  - "Checking out"\n  - "Done."',
+      baseResult
+    )
+    expect(failed).toHaveLength(0)
+  })
+})

@@ -29770,11 +29770,14 @@ function evaluateAssertions(assertionsYaml, captureResult) {
   const failed = []
 
   for (const [key, rawExpected] of Object.entries(assertions)) {
-    const expected = String(rawExpected)
-    const result = evaluate(key, expected, captureResult)
-    const entry = { key, expected, actual: result.actual, message: result.message }
-    if (result.pass) passed.push(entry)
-    else failed.push(entry)
+    const values = Array.isArray(rawExpected) ? rawExpected : [rawExpected]
+    for (const raw of values) {
+      const expected = String(raw)
+      const result = evaluate(key, expected, captureResult)
+      const entry = { key, expected, actual: result.actual, message: result.message }
+      if (result.pass) passed.push(entry)
+      else failed.push(entry)
+    }
   }
 
   return { passed, failed }
@@ -30067,8 +30070,12 @@ async function resolveAction(actionRef, workspace) {
   return downloadAction(owner, repo, ref)
 }
 
+function githubApiBase() {
+  return (process.env.GITHUB_API_URL || 'https://api.github.com').replace(/\/$/, '')
+}
+
 function downloadAction(owner, repo, ref) {
-  const tarballUrl = `https://api.github.com/repos/${owner}/${repo}/tarball/${ref}`
+  const tarballUrl = `${githubApiBase()}/repos/${owner}/${repo}/tarball/${ref}`
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'action-tester-resolve-'))
   const tarPath = path.join(tmpDir, 'action.tar.gz')
   const extractDir = path.join(tmpDir, 'extracted')
@@ -30092,7 +30099,7 @@ function downloadAction(owner, repo, ref) {
   return extractDir
 }
 
-module.exports = { resolveAction, parseActionRef }
+module.exports = { resolveAction, parseActionRef, githubApiBase }
 
 
 /***/ }),

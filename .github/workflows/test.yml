@@ -71,10 +71,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           action: actions/checkout@v4
+          inputs: |
+            repository: ${{ github.repository }}
           assertions: |
             exit_code: 0
-            files.exist: .git/HEAD
-            files.exist: .git/config
+            files.exist:
+              - .git/HEAD
+              - .git/config
 
       - name: Test actions/setup-node@v4 (marketplace)
         uses: ./

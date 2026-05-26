@@ -8,11 +8,14 @@ function evaluateAssertions(assertionsYaml, captureResult) {
   const failed = []
 
   for (const [key, rawExpected] of Object.entries(assertions)) {
-    const expected = String(rawExpected)
-    const result = evaluate(key, expected, captureResult)
-    const entry = { key, expected, actual: result.actual, message: result.message }
-    if (result.pass) passed.push(entry)
-    else failed.push(entry)
+    const values = Array.isArray(rawExpected) ? rawExpected : [rawExpected]
+    for (const raw of values) {
+      const expected = String(raw)
+      const result = evaluate(key, expected, captureResult)
+      const entry = { key, expected, actual: result.actual, message: result.message }
+      if (result.pass) passed.push(entry)
+      else failed.push(entry)
+    }
   }
 
   return { passed, failed }
