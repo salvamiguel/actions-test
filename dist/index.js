@@ -30010,34 +30010,59 @@ function formatReport({ actionRef, runnerType, captureResult, assertionResults, 
 
   const exitOk = expectFailure ? exitCode !== 0 : exitCode === 0
   const exitExpected = expectFailure ? 'non-zero' : '0'
-  const exitMark = exitOk ? 'PASS' : 'FAIL'
-
-  const lines = [
-    '-- Action Test Report -----------------------------',
-    `  Action:  ${actionRef}`,
-    `  Runner:  ${runnerType}`,
-    `  Exit:    ${exitCode} (expected ${exitExpected})  ${exitMark}`,
-    '',
-    `  Assertions (${passed.length} passed, ${failed.length} failed):`,
-  ]
-
-  for (const a of passed) {
-    lines.push(`  PASS  ${a.key.padEnd(24)} ${a.expected}`)
-  }
-  for (const a of failed) {
-    lines.push(`  FAIL  ${a.key.padEnd(24)} ${a.expected}`)
-    if (a.message) lines.push(`        ${a.message}`)
-  }
+  const exitDisplay = exitOk
+    ? `✅ \`${exitCode}\``
+    : `❌ \`${exitCode}\` _(expected \`${exitExpected}\`)_`
 
   const overallPass = failed.length === 0 && exitOk
-  const failCount = failed.length
+  const hasFailed = failed.length > 0
+
+  const lines = [
+    `## 🧪 Action Test: \`${actionRef}\``,
+    '',
+    '| Property | Value |',
+    '|----------|-------|',
+    `| **Runner** | \`${runnerType}\` |`,
+    `| **Exit code** | ${exitDisplay} |`,
+    '',
+  ]
+
+  const total = passed.length + failed.length
+  if (total > 0) {
+    lines.push(`### ${hasFailed ? '❌' : '✅'} Assertions — ${passed.length} passed · ${failed.length} failed`)
+    lines.push('')
+
+    if (hasFailed) {
+      lines.push('| | Assertion | Expected | Actual |')
+      lines.push('|:---:|-----------|----------|--------|')
+      for (const a of passed) {
+        lines.push(`| ✅ | \`${a.key}\` | \`${a.expected}\` | — |`)
+      }
+      for (const a of failed) {
+        lines.push(`| ❌ | \`${a.key}\` | \`${a.expected}\` | \`${a.actual}\` |`)
+      }
+    } else {
+      lines.push('| | Assertion | Expected |')
+      lines.push('|:---:|-----------|----------|')
+      for (const a of passed) {
+        lines.push(`| ✅ | \`${a.key}\` | \`${a.expected}\` |`)
+      }
+    }
+
+    lines.push('')
+  }
+
+  lines.push('---')
   lines.push('')
-  lines.push(
-    overallPass
-      ? '  Result: PASSED'
-      : `  Result: FAILED (${failCount} assertion${failCount === 1 ? '' : 's'} failed)`
-  )
-  lines.push('---------------------------------------------------')
+
+  if (overallPass) {
+    lines.push('🎉 **Result: PASSED**')
+  } else {
+    const reasons = []
+    if (!exitOk) reasons.push('unexpected exit code')
+    if (failed.length > 0) reasons.push(`${failed.length} assertion${failed.length === 1 ? '' : 's'} failed`)
+    lines.push(`💥 **Result: FAILED** — ${reasons.join(', ')}`)
+  }
 
   return lines.join('\n')
 }
@@ -30242,15 +30267,34 @@ module.exports = { runDockerAction }
 /***/ 9821:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
+const fs = __nccwpck_require__(9896)
+const path = __nccwpck_require__(6928)
 const { spawn } = __nccwpck_require__(5317)
 
 async function runNodeAction({ actionDir, main, resolvedInputs, userEnv, captureContext: _captureContext }) {
+  const sharedNm = findAncestorNodeModules(actionDir)
+  const existingNodePath = process.env.NODE_PATH || ''
+  const nodePath = sharedNm
+    ? (existingNodePath ? `${sharedNm}${path.delimiter}${existingNodePath}` : sharedNm)
+    : existingNodePath
+
   const env = {
     ...process.env,
+    ...(nodePath ? { NODE_PATH: nodePath } : {}),
     ...buildInputEnv(resolvedInputs),
     ...(userEnv || {}),
   }
   return spawnCapture('node', [main], { cwd: actionDir, env })
+}
+
+function findAncestorNodeModules(actionDir) {
+  let dir = path.dirname(actionDir)
+  while (dir !== path.dirname(dir)) {
+    const nm = path.join(dir, 'node_modules')
+    if (fs.existsSync(nm)) return nm
+    dir = path.dirname(dir)
+  }
+  return null
 }
 
 function buildInputEnv(resolvedInputs) {

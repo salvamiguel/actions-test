@@ -28,7 +28,7 @@ describe('formatReport', () => {
     expect(formatReport(baseParams)).toContain('Result: PASSED')
   })
 
-  it('shows FAIL and message for failing assertions', () => {
+  it('shows FAIL and actual value for failing assertions', () => {
     const params = {
       ...baseParams,
       assertionResults: {
@@ -39,7 +39,7 @@ describe('formatReport', () => {
     const report = formatReport(params)
     expect(report).toContain('FAIL')
     expect(report).toContain('exit_code')
-    expect(report).toContain('expected 1 got 0')
+    expect(report).toContain('`0`')
   })
 
   it('shows the result as FAILED when any assertion fails', () => {
