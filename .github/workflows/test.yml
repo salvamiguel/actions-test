@@ -43,8 +43,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci && npm run build
-      - name: Install fixture dependencies
-        run: npm install --prefix test/fixtures @actions/core@^1.10.1 js-yaml@^4.1.0
       - name: Test hello-action fixture (Node runner)
         uses: ./
         with:
@@ -130,7 +128,7 @@ jobs:
             version: not-a-version
           expect_failure: true
           assertions: |
-            stderr.contains: "Invalid semver"
+            stdout.contains: "Invalid semver"
 
       # --- env-exporter-action ---
       - name: Test env-exporter — exports multiple vars into GITHUB_ENV

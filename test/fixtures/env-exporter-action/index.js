@@ -1,27 +1,32 @@
-const core = require('@actions/core')
-const yaml = require('js-yaml')
+const fs = require('fs')
 
-async function run() {
-  const varsInput = core.getInput('vars', { required: true })
-  const vars = yaml.load(varsInput)
-
-  if (typeof vars !== 'object' || vars === null || Array.isArray(vars)) {
-    core.setFailed('vars input must be a YAML map of key: value pairs')
-    return
+function parseSimpleYamlMap(str) {
+  const result = {}
+  for (const line of str.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    if (trimmed.startsWith('- ')) return null
+    const idx = trimmed.indexOf(':')
+    if (idx === -1) return null
+    result[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim()
   }
-
-  for (const [key, value] of Object.entries(vars)) {
-    core.exportVariable(key, String(value))
-    process.stdout.write(`Exported ${key}=${value}\n`)
-  }
-
-  await core.summary
-    .addHeading('Exported Variables')
-    .addTable([
-      [{ data: 'Name', header: true }, { data: 'Value', header: true }],
-      ...Object.entries(vars).map(([k, v]) => [k, String(v)]),
-    ])
-    .write()
+  return Object.keys(result).length > 0 ? result : null
 }
 
-run().catch(core.setFailed)
+const vars = parseSimpleYamlMap(process.env.INPUT_VARS || '')
+
+if (!vars) {
+  process.stdout.write('::error::vars input must be a YAML map of key: value pairs\n')
+  process.exitCode = 1
+} else {
+  const envFile = process.env.GITHUB_ENV
+  const summaryFile = process.env.GITHUB_STEP_SUMMARY
+
+  if (summaryFile) fs.appendFileSync(summaryFile, '# Exported Variables\n\n| Name | Value |\n|------|-------|\n')
+
+  for (const [key, value] of Object.entries(vars)) {
+    process.stdout.write(`Exported ${key}=${value}\n`)
+    if (envFile) fs.appendFileSync(envFile, `${key}=${value}\n`)
+    if (summaryFile) fs.appendFileSync(summaryFile, `| ${key} | ${value} |\n`)
+  }
+}

@@ -1,13 +1,9 @@
-const core = require('@actions/core')
+const fs = require('fs')
 
-async function run() {
-  const name = core.getInput('name', { required: true })
-  const shout = core.getInput('shout') === 'true'
-  const greeting = shout ? `HELLO, ${name.toUpperCase()}!` : `Hello, ${name}!`
+const name = process.env.INPUT_NAME || ''
+const shout = process.env.INPUT_SHOUT === 'true'
+const greeting = shout ? `HELLO, ${name.toUpperCase()}!` : `Hello, ${name}!`
 
-  core.setOutput('greeting', greeting)
-  process.stdout.write(`${greeting}\n`)
-  await core.summary.addHeading('Greeting').addRaw(greeting).write()
-}
-
-run().catch(core.setFailed)
+if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `greeting=${greeting}\n`)
+process.stdout.write(`${greeting}\n`)
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `# Greeting\n\n${greeting}\n`)

@@ -1,11 +1,5 @@
-const core = require('@actions/core')
+const message = process.env.INPUT_MESSAGE || 'This action always fails'
+const exitCode = parseInt(process.env.INPUT_EXIT_CODE || '1', 10)
 
-async function run() {
-  const message = core.getInput('message')
-  const exitCode = parseInt(core.getInput('exit-code'), 10) || 1
-
-  core.setFailed(message)
-  process.exitCode = exitCode
-}
-
-run().catch(core.setFailed)
+process.stdout.write(`::error::${message}\n`)
+process.exitCode = exitCode

@@ -1,35 +1,32 @@
-const core = require('@actions/core')
+const fs = require('fs')
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9][a-zA-Z0-9.\-]*))?(?:\+[a-zA-Z0-9.\-]+)?$/
 
-async function run() {
-  const version = core.getInput('version', { required: true })
-  const match = version.match(SEMVER)
+const version = process.env.INPUT_VERSION || ''
+const match = version.match(SEMVER)
 
-  if (!match) {
-    core.setFailed(`Invalid semver: "${version}"`)
-    return
-  }
-
+if (!match) {
+  process.stdout.write(`::error::Invalid semver: "${version}"\n`)
+  process.exitCode = 1
+} else {
   const [, major, minor, patch, prerelease] = match
   const isPrerelease = Boolean(prerelease)
 
-  core.setOutput('major', major)
-  core.setOutput('minor', minor)
-  core.setOutput('patch', patch)
-  core.setOutput('is-prerelease', String(isPrerelease))
+  const out = process.env.GITHUB_OUTPUT
+  if (out) {
+    fs.appendFileSync(out, `major=${major}\n`)
+    fs.appendFileSync(out, `minor=${minor}\n`)
+    fs.appendFileSync(out, `patch=${patch}\n`)
+    fs.appendFileSync(out, `is-prerelease=${isPrerelease}\n`)
+  }
 
   process.stdout.write(`Parsed ${version}: ${major}.${minor}.${patch}${isPrerelease ? ` (prerelease: ${prerelease})` : ''}\n`)
-  await core.summary
-    .addHeading('Version')
-    .addTable([
-      [{ data: 'Component', header: true }, { data: 'Value', header: true }],
-      ['major', major],
-      ['minor', minor],
-      ['patch', patch],
-      ['prerelease', isPrerelease ? prerelease : '—'],
-    ])
-    .write()
-}
 
-run().catch(core.setFailed)
+  const summary = process.env.GITHUB_STEP_SUMMARY
+  if (summary) {
+    fs.appendFileSync(summary, `# Version ${major}.${minor}.${patch}\n\n`)
+    fs.appendFileSync(summary, `| Component | Value |\n|-----------|-------|\n`)
+    fs.appendFileSync(summary, `| major | ${major} |\n| minor | ${minor} |\n| patch | ${patch} |\n`)
+    fs.appendFileSync(summary, `| prerelease | ${isPrerelease ? prerelease : '—'} |\n`)
+  }
+}
